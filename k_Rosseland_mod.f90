@@ -1,10 +1,11 @@
 !!!
 ! G.K.H. Lee - Sep 2020
-!
+! A module that helps with grey and non-grey opacities from the literature
+! 1. Tan & Komacek (2019)'s UHJ grey parameter fit
+! 2. Freedman et al. (2014)'s fitting function
+! 3. Parmentier and Guillot (2014,2015) 3V band, 2IR picket fence scheme parameters, and Bond albedo function
+! Can be used in 1D RCE/RT or 3D GCM codes
 ! NOTE: Different schemes have different input pressures and different output k units!
-!
-!
-!
 !! TODO: Interpolate Freedman et al. (2014) tables for V band Rosseland means as well
 !!!
 
