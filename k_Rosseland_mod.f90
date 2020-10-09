@@ -121,7 +121,8 @@ contains
     implicit none
 
     ! Input:
-    ! Teff - Effective temperature [K]
+    ! Teff - Effective temperature [K] (See Parmentier papers for various ways to calculate this)
+    ! for non-irradiated atmosphere Teff = Tint
     ! table_num - Table selection from Parmentier et al. (2015): 1 = w. TiO/VO, 2 = w.o. TiO/VO
 
     ! Output:
@@ -130,7 +131,7 @@ contains
     ! Beta - equilvalent bandwidth for picket fence IR model
     ! gam_1 - gamma ratio for IR band 1 (gam_1 = kIR_1/kIR_Ross)
     ! gam_2 - gamma ratio for IR band 2 (gam_2 = kIR_2/kIR_Ross)
-    ! gam_P - gamma ratio for Planck mean (gam_P = kP/kRoss)
+    ! gam_P - gamma ratio for Planck mean (gam_P = kIR_Planck/kIR_Ross)
     ! tau_lim - tau limit variable (usually for IC system)
 
     real(kind=dp), intent(in) :: Teff
