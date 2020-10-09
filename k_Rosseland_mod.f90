@@ -34,8 +34,21 @@ module k_Rosseland_mod
   real(kind=dp), parameter :: c12_l = -0.445_dp, c12_h = -0.0414_dp
   real(kind=dp), parameter :: c13_l = 0.8321_dp, c13_h = 0.8321_dp
 
+  !! Coefficents parameters for the Valencia et al. (2013) table fit
+  real(kind=dp), parameter :: c1_v = -37.5_dp
+  real(kind=dp), parameter :: c2_v = 0.00105_dp
+  real(kind=dp), parameter :: c3_v = 3.2610_dp
+  real(kind=dp), parameter :: c4_v = 0.84315_dp
+  real(kind=dp), parameter :: c5_v = -2.339_dp
+  real(kind=dp), parameter :: c6_vl = -14.051_dp, c6_vh = 82.241_dp
+  real(kind=dp), parameter :: c7_vl = 3.055_dp, c7_vh = -55.456_dp
+  real(kind=dp), parameter :: c8_vl = 0.024_dp, c8_vh = 8.754_dp
+  real(kind=dp), parameter :: c9_vl = 1.877_dp, c9_vh = 0.7048_dp
+  real(kind=dp), parameter :: c10_vl = -0.445_dp, c10_vh = -0.0414_dp
+  real(kind=dp), parameter :: c11_vl = 0.8321_dp, c11_vh = 0.8321_dp
+
   !private
-  public :: k_Ross_Freedman, gam_Parmentier, Bond_Parmentier, k_Ross_Tan
+  public :: k_Ross_Freedman, gam_Parmentier, Bond_Parmentier, k_Ross_Tan, k_Ross_Valencia
 
 contains
 
@@ -111,7 +124,69 @@ contains
     ! Total Rosseland mean opacity - converted to m2 kg-1
     k_IR = (k_lowP + k_hiP) / 10.0_dp
 
+    ! Avoid divergence in fit for large values
+    if (k_IR > 1.0e10_dp) then
+      k_IR = 1.0e10_dp
+    endif
+
   end subroutine k_Ross_Freedman
+
+  !! Calculates the IR band Rosseland mean opacity (local T) according to the
+  !! Valencia et al. (2013) fit and coefficents
+  subroutine k_Ross_Valencia(Tin, Pin, met, k_IR)
+    implicit none
+
+    ! Input:
+    ! T - Local gas temperature [K]
+    ! P - Local gas pressure [pa]
+    ! met - Local metallicity [M/H] (log10 from solar, solar [M/H] = 0.0)
+
+    ! Output:
+    ! k_IR - IR band Rosseland mean opacity [m2 kg-1]
+
+    real(kind=dp), intent(in) :: Tin, Pin, met
+    real(kind=dp), intent(out) :: k_IR
+
+    real(kind=dp) :: k_lowP, k_hiP
+    real(kind=dp) :: Tl10, Pl10
+    real(kind=dp) :: T, P
+
+
+    T = Tin
+    P = Pin * 10.0_dp ! Convert to dyne
+
+    Tl10 = log10(T)
+    Pl10 = log10(P)
+
+    k_lowP = c1_v * (Tl10-c2_v*Pl10-c3_v)**2 + (c4_v*met + c5_v)
+
+    ! De log10
+    k_lowP = 10.0_dp**k_lowP
+
+    ! Temperature split for coefficents = 800 K
+    if (T <= 800.0_dp) then
+      k_hiP = (c6_vl+c7_vl*Tl10+c8_vl*Tl10**2) &
+      &     + Pl10*(c9_vl+c10_vl*Tl10) &
+      &     + met*c11_vl*(0.5_dp + onedivpi*atan((Tl10-2.5_dp)/0.2_dp))
+    else
+      k_hiP = (c6_vh+c7_vh*Tl10+c8_vh*Tl10**2) &
+      &     + Pl10*(c9_vh+c10_vh*Tl10) &
+      &     + met*c11_vh*(0.5_dp + onedivpi*atan((Tl10-2.5_dp)/0.2_dp))
+
+    end if
+
+    ! De log10
+    k_hiP = 10.0_dp**k_hiP
+
+    ! Total Rosseland mean opacity and convert to m2 kg-1
+    k_IR = (k_lowP + k_hiP) / 10.0_dp
+
+    ! Avoid divergence in fit for large values
+    if (k_IR > 1.0e10_dp) then
+      k_IR = 1.0e10_dp
+    endif
+
+  end subroutine k_Ross_Valencia
 
   !! Calculates 3 band grey visual gamma values and 2 picket fence IR gamma values
   !! according to the coefficents and equations in:
@@ -313,7 +388,7 @@ end module k_Rosseland_mod
 !! A test program for the above module to show example call stuctures
 !! Comment out when coupling to other codes
 program test_k_Rosseland_mod
-  use k_Rosseland_mod, only: k_Ross_Freedman, gam_Parmentier, Bond_Parmentier, k_Ross_Tan
+  use k_Rosseland_mod, only: k_Ross_Freedman, gam_Parmentier, Bond_Parmentier, k_Ross_Tan, k_Ross_Valencia
   implicit none
 
   double precision :: T = 1000.0d0
@@ -323,9 +398,12 @@ program test_k_Rosseland_mod
   double precision :: k_V_Tan, k_IR_Tan, k_IR_Freedman
 
   call k_Ross_Tan(P*1d5, k_V_Tan, k_IR_Tan)
-  print*, 'Tan: ', T, P, k_V_Tan*10d0, k_IR_Tan*10d0
+  print*, 'Tan: ', T, P, k_V_Tan, k_IR_Tan
 
-  call k_Ross_Freedman(T, P*1d6, met, k_IR_Freedman)
+  call k_Ross_Freedman(T, P*1d5, met, k_IR_Freedman)
   print*, 'Freedman: ', T, P, met, k_IR_Freedman
+
+  call k_Ross_Valencia(T, P*1d5, met, k_IR_Freedman)
+  print*, 'Valencia: ', T, P, met, k_IR_Freedman
 
 end program test_k_Rosseland_mod
