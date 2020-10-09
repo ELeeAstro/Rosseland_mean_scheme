@@ -78,7 +78,7 @@ contains
     real(kind=dp), intent(out) :: k_IR
 
     real(kind=dp) :: k_lowP, k_hiP
-    real(kind=dp) :: Tl10, Pl10
+    real(kind=dp) :: T, P, Tl10, Pl10
 
     T = Tin
     P = Pin * 10.0_dp ! Convert to dyne cm-2
@@ -109,7 +109,7 @@ contains
     k_hiP = 10.0_dp**k_hiP
 
     ! Total Rosseland mean opacity - converted to m2 kg-1
-    k_IR = (k_lowP + k_hiP) /10.0_dp
+    k_IR = (k_lowP + k_hiP) / 10.0_dp
 
   end subroutine k_Ross_Freedman
 
